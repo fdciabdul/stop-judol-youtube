@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube Comments Management</title>
+    <!-- DataTables CSS -->
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.11.5/css/jquery.dataTables.min.css">
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/responsive/2.2.9/css/responsive.dataTables.min.css">
+    <!-- Bootstrap -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/css/bootstrap.min.css">
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8f9fa;
+            padding: 20px;
+        }
+        
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        h1 {
+            color: #ff0000;
+            margin: 0;
+        }
+        
+        .card {
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+        
+        .video-selector {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .video-selector select {
+            flex-grow: 1;
+            margin-right: 10px;
+        }
+        
+        .filter-options {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .filter-label {
+            font-weight: 500;
+            margin-right: 10px;
+        }
+        
+        .btn-youtube {
+            background-color: #ff0000;
+            color: white;
+        }
+        
+        .btn-youtube:hover {
+            background-color: #cc0000;
+            color: white;
+        }
+        
+        .unicode-highlight {
+            background-color: #ffe0e0;
+            padding: 2px 4px;
+            border-radius: 3px;
+        }
+        
+        .dataTables_wrapper .dataTables_filter input {
+            margin-left: 0.5em;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 5px 10px;
+        }
+        
+        .comment-text {
+            max-width: 500px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: normal;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+        }
+        
+        #comment-table_wrapper {
+            padding: 0;
+        }
+        
+        .badge-unicode {
+            background-color: #ffe0e0;
+            color: #d63939;
+        }
+        
+        .action-buttons {
+            white-space: nowrap;
+        }
+        
+        /* Comment detail panel */
+        #comment-detail {
+            display: none;
+            padding: 20px;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            margin-top: 20px;
+        }
+        
+        .comment-detail-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .comment-detail-author {
+            font-weight: 600;
+            font-size: 18px;
+        }
+        
+        .comment-detail-date {
+            color: #666;
+        }
+        
+        .comment-detail-content {
+            margin-bottom: 20px;
+            line-height: 1.6;
+        }
+        
+        .comment-metrics {
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        
+        .metric-item {
+            display: inline-block;
+            margin-right: 15px;
+        }
+        
+        .metric-value {
+            font-weight: 600;
+        }
+        
+        .loader {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .spinner-border {
+            width: 3rem;
+            height: 3rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="header">
+            <h1>YouTube Comments Manager</h1>
+            <div>
+                <button id="refresh-all" class="btn btn-youtube">
+                    <i class="fas fa-sync-alt"></i> Refresh
+                </button>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-body">
+                <div class="video-selector">
+                    <select id="video-select" class="form-control">
+                        <option value="">Select a video...</option>
+                        <% if (typeof videos !== 'undefined' && videos.length > 0) { %>
+                            <% videos.forEach(function(video) { %>
+                                <option value="<%= video.id %>" data-thumbnail="<%= video.thumbnail %>">
+                                    <%= video.title %>
+                                </option>
+                            <% }); %>
+                        <% } %>
+                    </select>
+                    <button id="load-comments" class="btn btn-youtube ml-2">Load Comments</button>
+                </div>
+                
+                <div class="filter-options">
+                    <span class="filter-label">Filter:</span>
+                    <select id="unicode-filter" class="form-control form-control-sm" style="width: 200px;">
+                        <option value="all">All Unicode Characters</option>
+                        <option value="emoji">Emojis Only</option>
+                        <option value="nonLatin">Non-Latin Characters</option>
+                        <option value="special">Special Characters</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        
+        <div class="loader" id="loader">
+            <div class="spinner-border text-danger" role="status">
+                <span class="sr-only">Loading...</span>
+            </div>
+            <p class="mt-2">Loading comments...</p>
+        </div>
+        
+        <div class="card">
+            <div class="card-body">
+                <table id="comment-table" class="table table-striped table-bordered dt-responsive nowrap" style="width:100%">
+                    <thead>
+                        <tr>
+                            <th>Author</th>
+                            <th>Comment</th>
+                            <th>Date</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Comments will be loaded dynamically -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <div id="comment-detail">
+            <div class="comment-detail-header">
+                <div class="comment-detail-author"></div>
+                <div class="comment-detail-date"></div>
+            </div>
+            <div class="comment-metrics">
+                <div class="metric-item">
+                    <span class="metric-label">Unicode Characters:</span>
+                    <span class="metric-value" id="unicode-count">0</span>
+                </div>
+                <div class="metric-item">
+                    <span class="metric-label">Emojis:</span>
+                    <span class="metric-value" id="emoji-count">0</span>
+                </div>
+            </div>
+            <div class="comment-detail-content"></div>
+            <div class="comment-detail-actions">
+                <button class="btn btn-danger btn-sm delete-detail">Delete Comment</button>
+                <button class="btn btn-warning btn-sm report-detail">Report as Spam</button>
+                <button class="btn btn-secondary btn-sm close-detail">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- jQuery and DataTables -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/responsive/2.2.9/js/dataTables.responsive.min.js"></script>
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Font Awesome -->
+    <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+    
+    <script>
+        $(document).ready(function() {
+            // Initialize DataTable
+            const commentTable = $('#comment-table').DataTable({
+                responsive: true,
+                columns: [
+                    { data: 'author' },
+                    { 
+                        data: 'highlightedText',
+                        render: function(data, type, row) {
+                            if (type === 'display') {
+                                return '<div class="comment-text">' + data + '</div>';
+                            }
+                            return data;
+                        }
+                    },
+                    { data: 'date' },
+                    { 
+                        data: 'id',
+                        render: function(data) {
+                            return `
+                                <div class="action-buttons">
+                                    <button class="btn btn-info btn-sm view-btn" data-id="${data}">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    <button class="btn btn-danger btn-sm delete-btn" data-id="${data}">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                    <button class="btn btn-warning btn-sm report-btn" data-id="${data}">
+                                        <i class="fas fa-flag"></i>
+                                    </button>
+                                </div>
+                            `;
+                        },
+                        orderable: false
+                    }
+                ],
+                language: {
+                    emptyTable: "No comments with Unicode characters found"
+                }
+            });
+            
+            // Store comments data
+            let commentsData = [];
+            
+            // Load comments button
+            $('#load-comments').on('click', function() {
+                const videoId = $('#video-select').val();
+                if (!videoId) {
+                    alert('Please select a video first');
+                    return;
+                }
+                
+                loadComments(videoId);
+            });
+            
+            // Refresh all button
+            $('#refresh-all').on('click', function() {
+                const videoId = $('#video-select').val();
+                if (!videoId) {
+                    alert('Please select a video first');
+                    return;
+                }
+                
+                loadComments(videoId);
+            });
+            
+            // Filter change
+            $('#unicode-filter').on('change', function() {
+                const videoId = $('#video-select').val();
+                if (!videoId) {
+                    return;
+                }
+                
+                loadComments(videoId, $(this).val());
+            });
+            
+            // Function to load comments
+            function loadComments(videoId, filter = 'all') {
+                $('#loader').show();
+                
+                // Clear the table
+                commentTable.clear().draw();
+                
+                fetch(`/api/comments?videoId=${videoId}&filter=${filter}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        $('#loader').hide();
+                        
+                        if (data.success && data.comments.length > 0) {
+                            commentsData = data.comments;
+                            
+                            // Add data to the table
+                            commentTable.rows.add(data.comments).draw();
+                            
+                            // Set up event handlers for action buttons
+                            setupActionHandlers();
+                        }
+                    })
+                    .catch(error => {
+                        $('#loader').hide();
+                        console.error('Error fetching comments:', error);
+                        alert('Error loading comments: ' + error.message);
+                    });
+            }
+            
+            // Set up handlers for action buttons
+            function setupActionHandlers() {
+                // View comment
+                $('.view-btn').off('click').on('click', function() {
+                    const commentId = $(this).data('id');
+                    const comment = commentsData.find(c => c.id === commentId);
+                    
+                    if (comment) {
+                        showCommentDetail(comment);
+                    }
+                });
+                
+                // Delete comment
+                $('.delete-btn').off('click').on('click', function() {
+                    const commentId = $(this).data('id');
+                    
+                    if (confirm('Are you sure you want to delete this comment?')) {
+                        deleteComment(commentId);
+                    }
+                });
+                
+                // Report comment
+                $('.report-btn').off('click').on('click', function() {
+                    const commentId = $(this).data('id');
+                    
+                    if (confirm('Mark this comment as spam?')) {
+                        reportComment(commentId);
+                    }
+                });
+            }
+            
+            // Show comment detail
+            function showCommentDetail(comment) {
+                // Counts of unicode characters
+                const unicodeCount = (comment.text.match(/[^\u0000-\u007F]/g) || []).length;
+                const emojiCount = (comment.text.match(/[\u{1F000}-\u{1F6FF}\u{1F900}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu) || []).length;
+                
+                // Update the detail panel
+                $('#comment-detail .comment-detail-author').text(comment.author);
+                $('#comment-detail .comment-detail-date').text(comment.date);
+                $('#comment-detail .comment-detail-content').html(comment.highlightedText);
+                $('#unicode-count').text(unicodeCount);
+                $('#emoji-count').text(emojiCount);
+                
+                // Set action buttons
+                $('.delete-detail').data('id', comment.id);
+                $('.report-detail').data('id', comment.id);
+                
+                // Show the panel
+                $('#comment-detail').show();
+                
+                // Scroll to the detail panel
+                $('html, body').animate({
+                    scrollTop: $('#comment-detail').offset().top - 20
+                }, 500);
+            }
+            
+            // Delete comment
+            function deleteComment(commentId) {
+                fetch('/api/comments/delete', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ commentId })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Remove from the table
+                        commentTable.row($(`button.delete-btn[data-id="${commentId}"]`).closest('tr')).remove().draw();
+                        
+                        // Remove from our data
+                        commentsData = commentsData.filter(c => c.id !== commentId);
+                        
+                        // Hide detail panel if open
+                        if ($('.delete-detail').data('id') === commentId) {
+                            $('#comment-detail').hide();
+                        }
+                        
+                        alert('Comment deleted successfully');
+                    } else {
+                        alert('Failed to delete comment: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error deleting comment:', error);
+                    alert('Error deleting comment');
+                });
+            }
+            
+            // Report comment
+            function reportComment(commentId) {
+                fetch('/api/comments/report', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ commentId })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Highlight the row
+                        $(`button.report-btn[data-id="${commentId}"]`).closest('tr').css('background-color', '#fff8e1');
+                        
+                        alert('Comment reported as spam');
+                    } else {
+                        alert('Failed to report comment: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error reporting comment:', error);
+                    alert('Error reporting comment');
+                });
+            }
+            
+            // Close detail panel
+            $('.close-detail').on('click', function() {
+                $('#comment-detail').hide();
+            });
+            
+            // Handle delete from detail panel
+            $('.delete-detail').on('click', function() {
+                const commentId = $(this).data('id');
+                
+                if (confirm('Are you sure you want to delete this comment?')) {
+                    deleteComment(commentId);
+                }
+            });
+            
+            // Handle report from detail panel
+            $('.report-detail').on('click', function() {
+                const commentId = $(this).data('id');
+                
+                if (confirm('Mark this comment as spam?')) {
+                    reportComment(commentId);
+                }
+            });
+            
+            // Initial load if default video ID is provided
+            <% if (typeof defaultVideoId !== 'undefined' && defaultVideoId) { %>
+                $('#video-select').val('<%= defaultVideoId %>');
+                loadComments('<%= defaultVideoId %>');
+            <% } %>
+        });
+    </script>
+</body>
+</html>

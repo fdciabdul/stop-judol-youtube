@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Authentication Successful</title>
+    <link rel="stylesheet" href="/css/styles.css">
+    <style>
+        .success-container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 2rem;
+            text-align: center;
+            background-color: #f9f9f9;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .success-icon {
+            font-size: 3rem;
+            color: #4CAF50;
+            margin-bottom: 1rem;
+        }
+        
+        .success-title {
+            font-size: 2rem;
+            color: #333;
+            margin-bottom: 1rem;
+        }
+        
+        .success-message {
+            color: #666;
+            margin-bottom: 2rem;
+        }
+        
+        .btn {
+            display: inline-block;
+            background-color: #4285F4;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 4px;
+            text-decoration: none;
+            font-weight: 500;
+            transition: background-color 0.3s;
+        }
+        
+        .btn:hover {
+            background-color: #3367D6;
+        }
+    </style>
+</head>
+<body>
+    <div class="success-container">
+        <div class="success-icon">✅</div>
+        <h1 class="success-title">Authentication Successful!</h1>
+        <p class="success-message">
+            You have successfully authenticated with Google. Your access token has been saved.
+            You can now close this window and continue using the application.
+        </p>
+        <div class="actions">
+            <a href="/manage" class="btn">Manage Account</a>
+            <a href="/" class="btn" style="background-color: #757575;">Back to Home</a>
+        </div>
+    </div>
+
+    <script>
+        // Optional: Auto-redirect after a few seconds
+        setTimeout(() => {
+            window.location.href = '/manage';
+        }, 5000);
+    </script>
+</body>
+</html>

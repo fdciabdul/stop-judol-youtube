@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Authentication Error</title>
+    <link rel="stylesheet" href="/css/styles.css">
+    <style>
+        .error-container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 2rem;
+            text-align: center;
+            background-color: #f9f9f9;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .error-icon {
+            font-size: 3rem;
+            color: #F44336;
+            margin-bottom: 1rem;
+        }
+        
+        .error-title {
+            font-size: 2rem;
+            color: #333;
+            margin-bottom: 1rem;
+        }
+        
+        .error-message {
+            color: #666;
+            margin-bottom: 2rem;
+            padding: 1rem;
+            background-color: #FFEBEE;
+            border-radius: 4px;
+            border-left: 4px solid #F44336;
+            text-align: left;
+        }
+        
+        .btn {
+            display: inline-block;
+            background-color: #4285F4;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 4px;
+            text-decoration: none;
+            font-weight: 500;
+            transition: background-color 0.3s;
+        }
+        
+        .btn:hover {
+            background-color: #3367D6;
+        }
+        
+        .btn-retry {
+            background-color: #4CAF50;
+        }
+        
+        .btn-retry:hover {
+            background-color: #388E3C;
+        }
+    </style>
+</head>
+<body>
+    <div class="error-container">
+        <div class="error-icon">❌</div>
+        <h1 class="error-title">Authentication Error</h1>
+        <div class="error-message">
+            <%= message || "An error occurred during authentication." %>
+        </div>
+        <div class="actions">
+            <a href="/auth" class="btn btn-retry">Try Again</a>
+            <a href="/" class="btn" style="background-color: #757575;">Back to Home</a>
+        </div>
+    </div>
+
+    <script>
+        // Log error for debugging (optional)
+        console.error("Authentication error:", <%= JSON.stringify(message) %>);
+    </script>
+</body>
+</html>
